@@ -149,6 +149,19 @@ class TestStarrocks(Validator):
                     },
                 )
 
+    def test_insert_overwrite(self):
+        self.validate_identity("INSERT OVERWRITE my_table SELECT * FROM other_table")
+        self.validate_all(
+            "INSERT OVERWRITE my_table SELECT * FROM other_table",
+            read={
+                "": "INSERT OVERWRITE TABLE my_table SELECT * FROM other_table",
+            },
+            write={
+                "": "INSERT OVERWRITE TABLE my_table SELECT * FROM other_table",
+                "starrocks": "INSERT OVERWRITE my_table SELECT * FROM other_table",
+            },
+        )
+
     def test_analyze(self):
         self.validate_identity("ANALYZE TABLE TBL(c1, c2) PROPERTIES ('prop1'=val1)")
         self.validate_identity("ANALYZE FULL TABLE TBL(c1, c2) PROPERTIES ('prop1'=val1)")
