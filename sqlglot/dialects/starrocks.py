@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import typing as t
 
-from sqlglot import exp
+from sqlglot import exp, transforms
 from sqlglot.dialects.dialect import (
     approx_count_distinct_sql,
     arrow_json_extract_sql,
@@ -14,6 +14,7 @@ from sqlglot.dialects.dialect import (
 )
 from sqlglot.dialects.mysql import MySQL
 from sqlglot.helper import seq_get
+from sqlglot.optimizer.simplify import simplify
 from sqlglot.tokens import TokenType
 
 
@@ -151,6 +152,7 @@ class StarRocks(MySQL):
             **MySQL.Generator.TRANSFORMS,
             exp.Array: inline_array_sql,
             exp.ArrayAgg: rename_func("ARRAY_AGG"),
+            exp.Between: transforms.preprocess([simplify]),
             exp.ArrayFilter: rename_func("ARRAY_FILTER"),
             exp.ArrayToString: rename_func("ARRAY_JOIN"),
             exp.ApproxDistinct: approx_count_distinct_sql,
