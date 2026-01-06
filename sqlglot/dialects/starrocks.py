@@ -127,6 +127,7 @@ class StarRocks(MySQL):
         VARCHAR_REQUIRES_SIZE = False
         PARSE_JSON_NAME: t.Optional[str] = "PARSE_JSON"
         WITH_PROPERTIES_PREFIX = "PROPERTIES"
+        INSERT_OVERWRITE = " OVERWRITE"
 
         # StarRocks doesn't support "IS TRUE/FALSE" syntax.
         IS_BOOL_ALLOWED = False
@@ -146,6 +147,7 @@ class StarRocks(MySQL):
             exp.PrimaryKey: exp.Properties.Location.POST_SCHEMA,
             exp.UniqueKeyProperty: exp.Properties.Location.POST_SCHEMA,
             exp.PartitionByRangeProperty: exp.Properties.Location.POST_SCHEMA,
+            exp.PartitionedByProperty: exp.Properties.Location.POST_SCHEMA,
         }
 
         TRANSFORMS = {
@@ -350,3 +352,10 @@ class StarRocks(MySQL):
                     props.set("expressions", primary_key.pop(), engine_index + 1, overwrite=False)
 
             return super().create_sql(expression)
+
+        def partitionedbyproperty_sql(self, expression: exp.PartitionedByProperty) -> str:
+            node = expression.this
+            if isinstance(node, exp.Schema):
+                parts = ", ".join(self.sql(e) for e in node.expressions)
+                return f"PARTITION BY ({parts})"
+            return f"PARTITION BY ({self.sql(node)})"

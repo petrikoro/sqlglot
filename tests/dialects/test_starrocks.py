@@ -37,6 +37,8 @@ class TestStarrocks(Validator):
             "DISTRIBUTED BY HASH (col1) PROPERTIES ('replication_num'='1')",
             "PRIMARY KEY (col1) DISTRIBUTED BY HASH (col1)",
             "DUPLICATE KEY (col1, col2) DISTRIBUTED BY HASH (col1)",
+            "PARTITION BY (col1) DISTRIBUTED BY HASH (col1)",
+            "PARTITION BY (col1, col2) DISTRIBUTED BY HASH (col1)",
             "UNIQUE KEY (col1, col2) PARTITION BY RANGE (col1) (START ('2024-01-01') END ('2024-01-31') EVERY (INTERVAL 1 DAY)) DISTRIBUTED BY HASH (col1)",
             "UNIQUE KEY (col1, col2) PARTITION BY RANGE (col1, col2) (START ('1') END ('10') EVERY (1), START ('10') END ('100') EVERY (10)) DISTRIBUTED BY HASH (col1)",
         ]
@@ -148,6 +150,19 @@ class TestStarrocks(Validator):
                         "spark": "SELECT id, t.col FROM tbl LATERAL VIEW EXPLODE(scores) t AS col",
                     },
                 )
+
+    def test_insert_overwrite(self):
+        self.validate_identity("INSERT OVERWRITE my_table SELECT * FROM other_table")
+        self.validate_all(
+            "INSERT OVERWRITE my_table SELECT * FROM other_table",
+            read={
+                "": "INSERT OVERWRITE TABLE my_table SELECT * FROM other_table",
+            },
+            write={
+                "": "INSERT OVERWRITE TABLE my_table SELECT * FROM other_table",
+                "starrocks": "INSERT OVERWRITE my_table SELECT * FROM other_table",
+            },
+        )
 
     def test_analyze(self):
         self.validate_identity("ANALYZE TABLE TBL(c1, c2) PROPERTIES ('prop1'=val1)")
