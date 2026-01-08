@@ -59,8 +59,20 @@ class StarRocks(MySQL):
             **MySQL.Parser.PROPERTY_PARSERS,
             "PARTITION BY": lambda self: self._parse_partition_by_opt_range(),
             "PROPERTIES": lambda self: self._parse_wrapped_properties(),
+            "ROLLUP": lambda self: self._parse_rollup_property(),
             "UNIQUE": lambda self: self._parse_composite_key_property(exp.UniqueKeyProperty),
         }
+
+        def _parse_rollup_property(self) -> exp.RollupProperty:
+            # ROLLUP (rollup_name1 (col1, col2), rollup_name2 (col3, col4), ...)
+            def parse_rollup_index() -> exp.Schema:
+                name = self._parse_id_var()
+                columns = self._parse_wrapped_id_vars()
+                return self.expression(exp.Schema, this=name, expressions=columns)
+
+            return self.expression(
+                exp.RollupProperty, expressions=self._parse_wrapped_csv(parse_rollup_index)
+            )
 
         def _parse_create(self) -> exp.Create | exp.Command:
             create = super()._parse_create()
@@ -148,6 +160,7 @@ class StarRocks(MySQL):
             exp.UniqueKeyProperty: exp.Properties.Location.POST_SCHEMA,
             exp.PartitionByRangeProperty: exp.Properties.Location.POST_SCHEMA,
             exp.PartitionedByProperty: exp.Properties.Location.POST_SCHEMA,
+            exp.RollupProperty: exp.Properties.Location.POST_SCHEMA,
         }
 
         TRANSFORMS = {
@@ -359,3 +372,11 @@ class StarRocks(MySQL):
                 parts = ", ".join(self.sql(e) for e in node.expressions)
                 return f"PARTITION BY ({parts})"
             return f"PARTITION BY ({self.sql(node)})"
+
+        def rollupproperty_sql(self, expression: exp.RollupProperty) -> str:
+            rollups = []
+            for rollup in expression.expressions:
+                name = self.sql(rollup, "this")
+                columns = self.expressions(rollup, flat=True)
+                rollups.append(f"{name}({columns})")
+            return f"ROLLUP ({', '.join(rollups)})"

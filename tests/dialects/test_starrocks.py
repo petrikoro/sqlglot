@@ -41,6 +41,7 @@ class TestStarrocks(Validator):
             "PARTITION BY (col1, col2) DISTRIBUTED BY HASH (col1)",
             "UNIQUE KEY (col1, col2) PARTITION BY RANGE (col1) (START ('2024-01-01') END ('2024-01-31') EVERY (INTERVAL 1 DAY)) DISTRIBUTED BY HASH (col1)",
             "UNIQUE KEY (col1, col2) PARTITION BY RANGE (col1, col2) (START ('1') END ('10') EVERY (1), START ('10') END ('100') EVERY (10)) DISTRIBUTED BY HASH (col1)",
+            "DISTRIBUTED BY HASH (siteid) ROLLUP (r1(event_day, siteid), r2(event_day, citycode), r3(event_day))",
         ]
 
         for properties in ddl_sqls:
